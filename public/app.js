@@ -124,9 +124,46 @@ const el = {
   closeFilamentInUseBtn: document.getElementById('closeFilamentInUseBtn'),
 };
 
+let toastContainer = null;
+
+function ensureToastContainer() {
+  if (toastContainer) {
+    return toastContainer;
+  }
+  toastContainer = document.createElement('div');
+  toastContainer.className = 'toast-container';
+  toastContainer.setAttribute('aria-live', 'polite');
+  toastContainer.setAttribute('aria-atomic', 'false');
+  document.body.appendChild(toastContainer);
+  return toastContainer;
+}
+
 function setStatus(message, type = '') {
-  el.status.textContent = message;
-  el.status.className = `status ${type}`.trim();
+  if (!message) {
+    return;
+  }
+
+  el.status.textContent = '';
+  el.status.className = 'status';
+
+  const container = ensureToastContainer();
+  const toast = document.createElement('div');
+  const tone = type === 'error' ? 'error' : type === 'ok' ? 'ok' : 'info';
+  toast.className = `toast toast-${tone}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
+  const ttl = tone === 'error' ? 5000 : 3200;
+  window.setTimeout(() => {
+    toast.classList.remove('show');
+    window.setTimeout(() => {
+      toast.remove();
+    }, 200);
+  }, ttl);
 }
 
 function formatMoney(value) {
@@ -1136,6 +1173,7 @@ loadState().then(() => {
 }).catch((error) => {
   setStatus(error.message || 'Failed to load app state.', 'error');
 });
+
 
 
 

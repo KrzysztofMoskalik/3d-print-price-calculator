@@ -704,3 +704,44 @@ textarea {
   color: var(--text);
 }
 
+
+.toast-container {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  gap: 8px;
+  z-index: 2000;
+  max-width: min(420px, 92vw);
+}
+
+.toast {
+  background: rgba(20, 27, 35, 0.96);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-info {
+  border-color: var(--border);
+}
+
+.toast-ok {
+  border-color: #2f915a;
+}
+
+.toast-error {
+  border-color: #a84343;
+}
+

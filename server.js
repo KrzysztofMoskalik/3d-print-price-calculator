@@ -558,20 +558,22 @@ app.post('/api/filaments', (req, res) => {
     }
     const costPerKg = parseNumber(req.body.cost_per_kg, 'cost_per_kg', { min: 0 });
 
-    const manufacturer = db.prepare('SELECT id FROM filament_manufacturers WHERE id = ?').get(manufacturerId);
+    const manufacturer = db.prepare('SELECT id, name FROM filament_manufacturers WHERE id = ?').get(manufacturerId);
     if (!manufacturer) {
       throw new Error('manufacturer_id does not exist.');
     }
 
-    const filamentType = db.prepare('SELECT id FROM filament_types WHERE id = ?').get(typeId);
+    const filamentType = db.prepare('SELECT id, name FROM filament_types WHERE id = ?').get(typeId);
     if (!filamentType) {
       throw new Error('type_id does not exist.');
     }
 
+    const filamentName = composeFilamentName(manufacturer.name, filamentType.name, color);
+
     const result = db.prepare(`
-      INSERT INTO filaments (manufacturer_id, type_id, color, cost_per_kg, updated_at)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `).run(manufacturerId, typeId, color, costPerKg);
+      INSERT INTO filaments (name, manufacturer_id, type_id, color, cost_per_kg, updated_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(filamentName, manufacturerId, typeId, color, costPerKg);
 
     const filament = getFilamentById(result.lastInsertRowid);
     res.status(201).json({ filament });
@@ -597,25 +599,28 @@ app.put('/api/filaments/:id', (req, res) => {
     }
     const costPerKg = parseNumber(req.body.cost_per_kg, 'cost_per_kg', { min: 0 });
 
-    const manufacturer = db.prepare('SELECT id FROM filament_manufacturers WHERE id = ?').get(manufacturerId);
+    const manufacturer = db.prepare('SELECT id, name FROM filament_manufacturers WHERE id = ?').get(manufacturerId);
     if (!manufacturer) {
       throw new Error('manufacturer_id does not exist.');
     }
 
-    const filamentType = db.prepare('SELECT id FROM filament_types WHERE id = ?').get(typeId);
+    const filamentType = db.prepare('SELECT id, name FROM filament_types WHERE id = ?').get(typeId);
     if (!filamentType) {
       throw new Error('type_id does not exist.');
     }
 
+    const filamentName = composeFilamentName(manufacturer.name, filamentType.name, color);
+
     db.prepare(`
       UPDATE filaments
-      SET manufacturer_id = ?,
+      SET name = ?,
+          manufacturer_id = ?,
           type_id = ?,
           color = ?,
           cost_per_kg = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(manufacturerId, typeId, color, costPerKg, id);
+    `).run(filamentName, manufacturerId, typeId, color, costPerKg, id);
 
     const filament = getFilamentById(id);
     res.json({ filament });
@@ -832,3 +837,5 @@ app.delete('/api/calculations/:id', (req, res) => {
 app.listen(port, () => {
   console.log(`3D print calculator running at http://localhost:${port}`);
 });
+
+
