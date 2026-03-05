@@ -1,4 +1,4 @@
-﻿FROM node:20-bookworm-slim
+﻿FROM node:20-bookworm-slim AS app-build
 
 WORKDIR /app
 
@@ -16,3 +16,7 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 CMD ["npm", "start"]
+
+FROM app-build AS app-dev
+
+FROM app-build AS app-prod
