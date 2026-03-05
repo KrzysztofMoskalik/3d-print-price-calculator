@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Print Cost Calculator</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="app-header">
+      <h1>3D Printing Cost & Pricing Calculator</h1>
+    </header>
+
+    <div id="appShell" class="app-shell">
+      <aside id="leftPanel" class="side-panel left-panel">
+        <div class="panel-header">
+          <h1>Saved Items</h1>
+          <div class="header-actions">
+            <button id="toggleLeftPanelBtn" class="btn btn-icon" type="button" aria-label="Fold left panel" title="Fold left panel">&#9664;</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div class="actions-row">
+            <button id="newCalculationBtn" class="btn btn-primary btn-icon-only" type="button" title="New item" aria-label="New item">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a.5.5 0 0 1 .5.5V7.5h4a.5.5 0 0 1 0 1h-4v4a.5.5 0 0 1-1 0v-4h-4a.5.5 0 0 1 0-1h4v-4A.5.5 0 0 1 8 3z"/></svg>
+            </button>
+          </div>
+          <div id="savedList" class="saved-list"></div>
+        </div>
+      </aside>
+
+      <main class="middle-panel">
+        <section class="card">
+          <h2>Calculation</h2>
+          <div class="form-grid">
+            <label>
+              Calculation Name (optional)
+              <input id="calcName" type="text" placeholder="e.g. Dragon vase order" />
+            </label>
+            <label>
+              Print Time
+              <div class="time-pair">
+                <div class="input-addon-group input-addon-group-compact">
+                  <input id="printTimeHours" class="time-input" type="number" min="0" max="99" step="1" placeholder="00" aria-label="Print time hours" />
+                  <span class="input-addon">h</span>
+                </div>
+                <div class="input-addon-group input-addon-group-compact">
+                  <input id="printTimeMinutes" class="time-input" type="number" min="0" max="59" step="1" placeholder="00" aria-label="Print time minutes" />
+                  <span class="input-addon">min</span>
+                </div>
+              </div>
+            </label>
+            <label>
+              Filaments
+              <div class="multi-select" id="filamentMultiSelect">
+                <button id="filamentDropdownBtn" class="btn multi-select-trigger" type="button">Choose filaments</button>
+                <div id="filamentDropdownMenu" class="multi-select-menu hidden">
+                  <div class="multi-select-actions">
+                    <button id="selectAllFilamentsBtn" class="btn" type="button">All</button>
+                    <button id="selectNoneFilamentsBtn" class="btn" type="button">None</button>
+                  </div>
+                  <div id="filamentCheckboxList" class="multi-select-list"></div>
+                </div>
+              </div>
+            </label>
+            <label>
+              Filament Used
+              <div class="input-addon-group">
+                <input id="filamentUsed" type="number" min="0" step="0.1" />
+                <span class="input-addon">g</span>
+              </div>
+            </label>
+            <label>
+              Margin Override (optional)
+              <div class="input-addon-group">
+                <input id="marginOverride" type="number" min="0" step="0.01" />
+                <span class="input-addon">%</span>
+              </div>
+            </label>
+          </div>
+
+          <label>
+            Additional Comments
+            <textarea id="additionalComments" rows="4" placeholder="Optional notes about this print..."></textarea>
+          </label>
+
+          <label>
+            3D Model URL (optional)
+            <textarea id="modelUrl" rows="2" placeholder="https://..."></textarea>
+          </label>
+
+          <div class="result-grid" id="resultGrid">
+            <div class="result-item">
+              <span>Filament Cost</span>
+              <div id="filamentCostOut" class="result-lines"></div>
+            </div>
+            <div class="result-item">
+              <span>Electricity Cost</span>
+              <strong id="electricityCostOut">0,00</strong>
+            </div>
+            <div class="result-item">
+              <span>Total Cost</span>
+              <div id="totalCostOut" class="result-lines"></div>
+            </div>
+            <div class="result-item">
+              <span>Final Price</span>
+              <div id="finalPriceOut" class="result-lines"></div>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <button id="saveCalculationBtn" class="btn btn-primary btn-icon-only" type="button" title="Save calculation" aria-label="Save calculation">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 1.5A1.5 1.5 0 0 1 3.5 0h7.793a1.5 1.5 0 0 1 1.06.44l2.207 2.207A1.5 1.5 0 0 1 15 3.707V14.5a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 2 14.5v-13zM3.5 1a.5.5 0 0 0-.5.5V14.5a.5.5 0 0 0 .5.5H4V9.5A1.5 1.5 0 0 1 5.5 8h5A1.5 1.5 0 0 1 12 9.5V15h1.5a.5.5 0 0 0 .5-.5V3.707a.5.5 0 0 0-.146-.353L11.646 1.146A.5.5 0 0 0 11.293 1H10v3.5A1.5 1.5 0 0 1 8.5 6h-3A1.5 1.5 0 0 1 4 4.5V1h-.5zM5 1v3.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5V1H5zm6 14V9.5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0-.5.5V15h6z"/></svg>
+            </button>
+            <button id="deleteCalculationBtn" class="btn btn-danger btn-icon-only" type="button" title="Delete selected calculation" aria-label="Delete selected calculation" disabled>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5.5A.5.5 0 0 0 7.5 6v6a.5.5 0 0 0 1 0V6A.5.5 0 0 0 8 5.5zm2 .5a.5.5 0 0 1 1 0v6a.5.5 0 0 1-1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 1 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1zM6 2a.5.5 0 0 0-.5.5V3h5v-.5A.5.5 0 0 0 10 2H6zM4 4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4H4z"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <div id="calcUpdatedInfo" class="calc-updated-info"></div>
+        <div id="status" class="status" role="status"></div>
+      </main>
+
+      <aside id="rightPanel" class="side-panel right-panel">
+        <div class="panel-header">
+          <h1>Settings</h1>
+          <button id="toggleRightPanelBtn" class="btn btn-icon" type="button" aria-label="Fold right panel" title="Fold right panel">&#9654;</button>
+        </div>
+        <div class="panel-content panel-stack">
+          <section class="card">
+            <h2>Global Settings</h2>
+            <div class="form-grid">
+              <label>
+                Electricity Cost
+                <div class="input-addon-group">
+                  <input id="electricityCost" type="number" min="0" step="0.0001" />
+                  <span class="input-addon">PLN/kWh</span>
+                </div>
+              </label>
+              <label>
+                Printer Power Usage
+                <div class="input-addon-group">
+                  <input id="printerPowerKw" type="number" min="0" step="0.001" />
+                  <span class="input-addon">kW</span>
+                </div>
+              </label>
+              <label>
+                Default Margin
+                <div class="input-addon-group">
+                  <input id="defaultMargin" type="number" min="0" step="0.01" />
+                  <span class="input-addon">%</span>
+                </div>
+              </label>
+            </div>
+            <button id="saveSettingsBtn" class="btn btn-icon-only" type="button" title="Save settings" aria-label="Save settings">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 1.5A1.5 1.5 0 0 1 3.5 0h7.793a1.5 1.5 0 0 1 1.06.44l2.207 2.207A1.5 1.5 0 0 1 15 3.707V14.5a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 2 14.5v-13zM3.5 1a.5.5 0 0 0-.5.5V14.5a.5.5 0 0 0 .5.5H4V9.5A1.5 1.5 0 0 1 5.5 8h5A1.5 1.5 0 0 1 12 9.5V15h1.5a.5.5 0 0 0 .5-.5V3.707a.5.5 0 0 0-.146-.353L11.646 1.146A.5.5 0 0 0 11.293 1H10v3.5A1.5 1.5 0 0 1 8.5 6h-3A1.5 1.5 0 0 1 4 4.5V1h-.5zM5 1v3.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5V1H5zm6 14V9.5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0-.5.5V15h6z"/></svg>
+            </button>
+          </section>
+
+          <section class="card">
+            <div class="section-header">
+              <h2>Filaments</h2>
+            </div>
+            <div class="filament-new-row">
+              <input id="newFilamentName" type="text" placeholder="Filament name" />
+              <div class="input-addon-group">
+                <input id="newFilamentCost" type="text" inputmode="decimal" placeholder="0,00" />
+                <span class="input-addon">PLN/kg</span>
+              </div>
+              <button id="addFilamentBtn" class="btn btn-icon-only" type="button" title="Add filament" aria-label="Add filament">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a.5.5 0 0 1 .5.5V7.5h4a.5.5 0 0 1 0 1h-4v4a.5.5 0 0 1-1 0v-4h-4a.5.5 0 0 1 0-1h4v-4A.5.5 0 0 1 8 3z"/></svg>
+              </button>
+            </div>
+            <div id="filamentList" class="filament-list"></div>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="app-footer">
+      <small>Copyright &copy; 2026 Krzysztof Moskalik</small>
+    </footer>
+  </div>
+
+  <div id="deleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+    <div class="modal-card">
+      <h3 id="deleteModalTitle">Delete Calculation?</h3>
+      <p id="deleteModalText">This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button id="cancelDeleteBtn" class="btn btn-icon-only" type="button" title="Cancel" aria-label="Cancel">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.146a.5.5 0 0 1 .708 0L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 1 1-.708-.708L7.293 8 2.146 2.854a.5.5 0 0 1 0-.708z"/></svg>
+        </button>
+        <button id="confirmDeleteBtn" class="btn btn-danger btn-icon-only" type="button" title="Confirm delete" aria-label="Confirm delete">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5.5A.5.5 0 0 0 7.5 6v6a.5.5 0 0 0 1 0V6A.5.5 0 0 0 8 5.5zm2 .5a.5.5 0 0 1 1 0v6a.5.5 0 0 1-1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 1 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1zM6 2a.5.5 0 0 0-.5.5V3h5v-.5A.5.5 0 0 0 10 2H6zM4 4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4H4z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="filamentDeleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="filamentDeleteModalTitle">
+    <div class="modal-card">
+      <h3 id="filamentDeleteModalTitle">Delete Filament?</h3>
+      <p id="filamentDeleteModalText">This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button id="cancelFilamentDeleteBtn" class="btn" type="button">Cancel</button>
+        <button id="confirmFilamentDeleteBtn" class="btn btn-danger" type="button">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="filamentInUseModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="filamentInUseModalTitle">
+    <div class="modal-card">
+      <h3 id="filamentInUseModalTitle">Filament Cannot Be Deleted</h3>
+      <p id="filamentInUseText">This filament is used by saved items.</p>
+      <ul id="filamentInUseList" class="modal-list"></ul>
+      <div class="modal-actions">
+        <button id="closeFilamentInUseBtn" class="btn" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
+
+
+
+

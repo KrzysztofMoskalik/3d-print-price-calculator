@@ -1,0 +1,14 @@
+﻿{
+  "name": "3d-print-calculator",
+  "version": "1.0.0",
+  "description": "3D printing cost and pricing calculator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "express": "^4.21.2"
+  }
+}
