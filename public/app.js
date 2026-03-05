@@ -1,9 +1,13 @@
-﻿const state = {
+
+const state = {
   settings: {
     electricity_cost_per_kwh: 0,
-    printer_power_kw: 0.12,
+    printer_power_kw: 0.3,
     default_margin_percent: 20,
   },
+  printers: [],
+  filamentTypes: [],
+  filamentManufacturers: [],
   filaments: [],
   calculations: [],
   selectedCalculationId: null,
@@ -20,6 +24,36 @@
   },
 };
 
+const PANEL_STATE_STORAGE_KEY = 'panel_fold_state_v1';
+
+function loadPanelState() {
+  try {
+    const raw = localStorage.getItem(PANEL_STATE_STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.leftCollapsed === 'boolean') {
+      state.ui.leftCollapsed = parsed.leftCollapsed;
+    }
+    if (typeof parsed.rightCollapsed === 'boolean') {
+      state.ui.rightCollapsed = parsed.rightCollapsed;
+    }
+  } catch (_error) {
+    // ignore storage errors
+  }
+}
+
+function savePanelState() {
+  try {
+    localStorage.setItem(PANEL_STATE_STORAGE_KEY, JSON.stringify({
+      leftCollapsed: state.ui.leftCollapsed,
+      rightCollapsed: state.ui.rightCollapsed,
+    }));
+  } catch (_error) {
+    // ignore storage errors
+  }
+}
 const el = {
   appShell: document.getElementById('appShell'),
   leftPanel: document.getElementById('leftPanel'),
@@ -29,13 +63,32 @@ const el = {
   savedList: document.getElementById('savedList'),
   newCalculationBtn: document.getElementById('newCalculationBtn'),
   electricityCost: document.getElementById('electricityCost'),
-  printerPowerKw: document.getElementById('printerPowerKw'),
+  printerPowerW: document.getElementById('printerPowerW'),
   defaultMargin: document.getElementById('defaultMargin'),
   saveSettingsBtn: document.getElementById('saveSettingsBtn'),
-  newFilamentName: document.getElementById('newFilamentName'),
+
+  calcPrinter: document.getElementById('calcPrinter'),
+
+  newPrinterName: document.getElementById('newPrinterName'),
+  newPrinterPowerW: document.getElementById('newPrinterPowerW'),
+  addPrinterBtn: document.getElementById('addPrinterBtn'),
+  printerList: document.getElementById('printerList'),
+
+  newFilamentTypeName: document.getElementById('newFilamentTypeName'),
+  addFilamentTypeBtn: document.getElementById('addFilamentTypeBtn'),
+  filamentTypeList: document.getElementById('filamentTypeList'),
+
+  newFilamentManufacturerName: document.getElementById('newFilamentManufacturerName'),
+  addFilamentManufacturerBtn: document.getElementById('addFilamentManufacturerBtn'),
+  filamentManufacturerList: document.getElementById('filamentManufacturerList'),
+
+  newFilamentManufacturer: document.getElementById('newFilamentManufacturer'),
+  newFilamentType: document.getElementById('newFilamentType'),
+  newFilamentColor: document.getElementById('newFilamentColor'),
   newFilamentCost: document.getElementById('newFilamentCost'),
   addFilamentBtn: document.getElementById('addFilamentBtn'),
   filamentList: document.getElementById('filamentList'),
+
   calcName: document.getElementById('calcName'),
   printTimeHours: document.getElementById('printTimeHours'),
   printTimeMinutes: document.getElementById('printTimeMinutes'),
@@ -90,6 +143,10 @@ function formatFilamentCostInput(value) {
   return formatMoney(value);
 }
 
+function formatPowerW(valueKw) {
+  return Math.round(Number(valueKw || 0) * 1000);
+}
+
 function getIconSvg(name) {
   const icons = {
     save: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 1.5A1.5 1.5 0 0 1 3.5 0h7.793a1.5 1.5 0 0 1 1.06.44l2.207 2.207A1.5 1.5 0 0 1 15 3.707V14.5a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 2 14.5v-13zM3.5 1a.5.5 0 0 0-.5.5V14.5a.5.5 0 0 0 .5.5H4V9.5A1.5 1.5 0 0 1 5.5 8h5A1.5 1.5 0 0 1 12 9.5V15h1.5a.5.5 0 0 0 .5-.5V3.707a.5.5 0 0 0-.146-.353L11.646 1.146A.5.5 0 0 0 11.293 1H10v3.5A1.5 1.5 0 0 1 8.5 6h-3A1.5 1.5 0 0 1 4 4.5V1h-.5zM5 1v3.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5V1H5zm6 14V9.5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0-.5.5V15h6z"/></svg>',
@@ -105,15 +162,82 @@ function syncPanelUI() {
   el.leftPanel.classList.toggle('is-collapsed', state.ui.leftCollapsed);
   el.rightPanel.classList.toggle('is-collapsed', state.ui.rightCollapsed);
 
-  el.toggleLeftPanelBtn.textContent = state.ui.leftCollapsed ? '▶' : '◀';
+  el.toggleLeftPanelBtn.textContent = state.ui.leftCollapsed ? '\u25B6' : '\u25C0';
   el.toggleLeftPanelBtn.title = state.ui.leftCollapsed ? 'Unfold left panel' : 'Fold left panel';
   el.toggleLeftPanelBtn.setAttribute('aria-label', el.toggleLeftPanelBtn.title);
 
-  el.toggleRightPanelBtn.textContent = state.ui.rightCollapsed ? '◀' : '▶';
+  el.toggleRightPanelBtn.textContent = state.ui.rightCollapsed ? '\u25C0' : '\u25B6';
   el.toggleRightPanelBtn.title = state.ui.rightCollapsed ? 'Unfold right panel' : 'Fold right panel';
   el.toggleRightPanelBtn.setAttribute('aria-label', el.toggleRightPanelBtn.title);
+
+  savePanelState();
 }
 
+function setupRightPanelCardFolding() {
+  const cards = el.rightPanel.querySelectorAll('.card');
+
+  cards.forEach((card) => {
+    if (card.dataset.collapsibleInit === '1') {
+      return;
+    }
+    card.dataset.collapsibleInit = '1';
+
+    let header = card.querySelector(':scope > .section-header');
+    if (!header) {
+      const heading = card.querySelector(':scope > h2');
+      if (!heading) {
+        return;
+      }
+      header = document.createElement('div');
+      header.className = 'section-header';
+      card.insertBefore(header, heading);
+      header.appendChild(heading);
+    }
+
+    const content = document.createElement('div');
+    content.className = 'card-collapsible-content';
+
+    Array.from(card.children).forEach((child) => {
+      if (child !== header) {
+        content.appendChild(child);
+      }
+    });
+    card.appendChild(content);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'btn btn-icon card-toggle-btn';
+
+    const syncToggleState = () => {
+      const collapsed = card.classList.contains('is-collapsed');
+      toggleBtn.textContent = collapsed ? '\u25B8' : '\u25BE';
+      toggleBtn.setAttribute('aria-label', collapsed ? 'Expand section' : 'Collapse section');
+      toggleBtn.title = collapsed ? 'Expand section' : 'Collapse section';
+    };
+
+    const toggleCard = () => {
+      card.classList.toggle('is-collapsed');
+      syncToggleState();
+    };
+
+    toggleBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleCard();
+    });
+
+    header.addEventListener('click', (event) => {
+      if (event.target === toggleBtn || toggleBtn.contains(event.target)) {
+        return;
+      }
+      toggleCard();
+    });
+
+    header.appendChild(toggleBtn);
+
+    card.classList.add('collapsible-card', 'is-collapsed');
+    syncToggleState();
+  });
+}
 function normalizeTimePart(value, max) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -161,6 +285,12 @@ function getSelectedFilaments() {
   return state.filaments.filter((f) => state.selectedFilamentIds.includes(f.id));
 }
 
+function getSelectedPrinterPowerKw() {
+  const printerId = Number(el.calcPrinter.value || 0);
+  const selected = state.printers.find((p) => p.id === printerId);
+  return selected ? Number(selected.power_kw || 0) : Number(state.settings.printer_power_kw || 0);
+}
+
 function updateFilamentDropdownButton() {
   const selected = getSelectedFilaments();
   if (selected.length === 0) {
@@ -173,10 +303,51 @@ function updateFilamentDropdownButton() {
   }
   el.filamentDropdownBtn.textContent = `${selected.length} filaments selected`;
 }
+function setSelectOptions(selectNode, items, placeholder) {
+  selectNode.innerHTML = '';
+
+  if (placeholder) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = placeholder;
+    selectNode.appendChild(option);
+  }
+
+  items.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = String(item.id);
+    option.textContent = item.name;
+    selectNode.appendChild(option);
+  });
+}
+
+function renderPrinterSelect() {
+  const current = el.calcPrinter.value;
+  el.calcPrinter.innerHTML = '';
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Default (global setting)';
+  el.calcPrinter.appendChild(defaultOption);
+
+  state.printers.forEach((printer) => {
+    const option = document.createElement('option');
+    option.value = String(printer.id);
+    option.textContent = `${printer.name} (${formatPowerW(printer.power_kw)} W)`;
+    el.calcPrinter.appendChild(option);
+  });
+
+  el.calcPrinter.value = current || '';
+}
+
+function renderFilamentReferenceSelects() {
+  setSelectOptions(el.newFilamentManufacturer, state.filamentManufacturers, 'Manufacturer');
+  setSelectOptions(el.newFilamentType, state.filamentTypes, 'Type');
+  el.addFilamentBtn.disabled = state.filamentManufacturers.length === 0 || state.filamentTypes.length === 0;
+}
 
 function renderFilamentCheckboxes() {
   el.filamentCheckboxList.innerHTML = '';
-
   if (state.filaments.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'meta';
@@ -222,6 +393,7 @@ function readCalculationForm() {
     additional_comments: el.additionalComments.value,
     model_url: el.modelUrl.value,
     print_time_hours: getPrintTimeHoursFromForm(),
+    printer_id: el.calcPrinter.value === '' ? null : Number(el.calcPrinter.value),
     filament_ids: state.selectedFilamentIds,
     filament_used_grams: el.filamentUsed.value || 0,
     margin_override_percent: el.marginOverride.value === '' ? null : Number(el.marginOverride.value),
@@ -234,7 +406,7 @@ function buildScenarioRowsFromSelection() {
   const overrideMargin = el.marginOverride.value === '' ? null : Number(el.marginOverride.value);
 
   const electricityCostPerKwh = Number(state.settings.electricity_cost_per_kwh || 0);
-  const printerPowerKw = Number(state.settings.printer_power_kw || 0);
+  const printerPowerKw = getSelectedPrinterPowerKw();
   const electricityCost = printTime * electricityCostPerKwh * printerPowerKw;
 
   const margin = overrideMargin === null || Number.isNaN(overrideMargin)
@@ -246,25 +418,18 @@ function buildScenarioRowsFromSelection() {
     const totalCost = electricityCost;
     return {
       electricityCost,
-      rows: [{
-        name: 'No filament',
-        filamentCost: 0,
-        totalCost,
-        finalPrice: totalCost * (1 + margin / 100),
-      }],
+      rows: [{ name: 'No filament', filamentCost: 0, totalCost, finalPrice: totalCost * (1 + margin / 100) }],
     };
   }
 
   const rows = selectedFilaments.map((filament) => {
     const filamentCost = (filamentUsed / 1000) * Number(filament.cost_per_kg || 0);
     const totalCost = filamentCost + electricityCost;
-    const finalPrice = totalCost * (1 + margin / 100);
-
     return {
       name: filament.name,
       filamentCost,
       totalCost,
-      finalPrice,
+      finalPrice: totalCost * (1 + margin / 100),
     };
   });
 
@@ -276,15 +441,12 @@ function setResultLines(node, rows, valueKey) {
   rows.forEach((row) => {
     const line = document.createElement('div');
     line.className = 'line';
-
     const label = document.createElement('span');
     label.className = 'line-label';
     label.textContent = `${row.name} - `;
-
     const value = document.createElement('span');
     value.className = 'price-value';
     value.textContent = formatMoney(row[valueKey]);
-
     line.appendChild(label);
     line.appendChild(value);
     node.appendChild(line);
@@ -299,9 +461,172 @@ function computePreview() {
   setResultLines(el.finalPriceOut, scenario.rows, 'finalPrice');
 }
 
+function renderPrinters() {
+  el.printerList.innerHTML = '';
+  if (state.printers.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'meta';
+    empty.textContent = 'No printers yet.';
+    el.printerList.appendChild(empty);
+    return;
+  }
+
+  state.printers.forEach((printer) => {
+    const row = document.createElement('div');
+    row.className = 'printer-row';
+
+    const nameInput = document.createElement('input');
+    nameInput.value = printer.name;
+
+    const powerGroup = document.createElement('div');
+    powerGroup.className = 'input-addon-group';
+    const powerInput = document.createElement('input');
+    powerInput.type = 'number';
+    powerInput.min = '0';
+    powerInput.step = '1';
+    powerInput.value = String(formatPowerW(printer.power_kw));
+    const powerAddon = document.createElement('span');
+    powerAddon.className = 'input-addon';
+    powerAddon.textContent = 'W';
+    powerGroup.appendChild(powerInput);
+    powerGroup.appendChild(powerAddon);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn-icon-only';
+    saveBtn.type = 'button';
+    saveBtn.innerHTML = getIconSvg('save');
+    saveBtn.addEventListener('click', async () => {
+      const result = await fetch(`/api/printers/${printer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nameInput.value, power_w: Number(powerInput.value || 0) }),
+      });
+      if (!result.ok) return handleApiError(result);
+      await loadState();
+      setStatus('Printer updated.', 'ok');
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-danger btn-icon-only';
+    deleteBtn.type = 'button';
+    deleteBtn.innerHTML = getIconSvg('trash');
+    deleteBtn.addEventListener('click', async () => {
+      const result = await fetch(`/api/printers/${printer.id}`, { method: 'DELETE' });
+      if (!result.ok) return handleApiError(result);
+      if (String(el.calcPrinter.value) === String(printer.id)) {
+        el.calcPrinter.value = '';
+      }
+      await loadState();
+      setStatus('Printer deleted.', 'ok');
+    });
+
+    row.appendChild(nameInput);
+    row.appendChild(powerGroup);
+    row.appendChild(saveBtn);
+    row.appendChild(deleteBtn);
+    el.printerList.appendChild(row);
+  });
+}
+function renderFilamentTypes() {
+  el.filamentTypeList.innerHTML = '';
+  if (state.filamentTypes.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'meta';
+    empty.textContent = 'No types yet.';
+    el.filamentTypeList.appendChild(empty);
+    return;
+  }
+
+  state.filamentTypes.forEach((type) => {
+    const row = document.createElement('div');
+    row.className = 'simple-crud-row';
+    const input = document.createElement('input');
+    input.value = type.name;
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn-icon-only';
+    saveBtn.type = 'button';
+    saveBtn.innerHTML = getIconSvg('save');
+    saveBtn.addEventListener('click', async () => {
+      const result = await fetch(`/api/filament-types/${type.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: input.value }),
+      });
+      if (!result.ok) return handleApiError(result);
+      await loadState();
+      setStatus('Filament type updated.', 'ok');
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-danger btn-icon-only';
+    deleteBtn.type = 'button';
+    deleteBtn.innerHTML = getIconSvg('trash');
+    deleteBtn.addEventListener('click', async () => {
+      const result = await fetch(`/api/filament-types/${type.id}`, { method: 'DELETE' });
+      if (!result.ok) return handleApiError(result);
+      await loadState();
+      setStatus('Filament type deleted.', 'ok');
+    });
+
+    row.appendChild(input);
+    row.appendChild(saveBtn);
+    row.appendChild(deleteBtn);
+    el.filamentTypeList.appendChild(row);
+  });
+}
+
+function renderFilamentManufacturers() {
+  el.filamentManufacturerList.innerHTML = '';
+  if (state.filamentManufacturers.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'meta';
+    empty.textContent = 'No manufacturers yet.';
+    el.filamentManufacturerList.appendChild(empty);
+    return;
+  }
+
+  state.filamentManufacturers.forEach((manufacturer) => {
+    const row = document.createElement('div');
+    row.className = 'simple-crud-row';
+    const input = document.createElement('input');
+    input.value = manufacturer.name;
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn-icon-only';
+    saveBtn.type = 'button';
+    saveBtn.innerHTML = getIconSvg('save');
+    saveBtn.addEventListener('click', async () => {
+      const result = await fetch(`/api/filament-manufacturers/${manufacturer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: input.value }),
+      });
+      if (!result.ok) return handleApiError(result);
+      await loadState();
+      setStatus('Filament manufacturer updated.', 'ok');
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-danger btn-icon-only';
+    deleteBtn.type = 'button';
+    deleteBtn.innerHTML = getIconSvg('trash');
+    deleteBtn.addEventListener('click', async () => {
+      const result = await fetch(`/api/filament-manufacturers/${manufacturer.id}`, { method: 'DELETE' });
+      if (!result.ok) return handleApiError(result);
+      await loadState();
+      setStatus('Filament manufacturer deleted.', 'ok');
+    });
+
+    row.appendChild(input);
+    row.appendChild(saveBtn);
+    row.appendChild(deleteBtn);
+    el.filamentManufacturerList.appendChild(row);
+  });
+}
+
 function renderFilaments() {
   el.filamentList.innerHTML = '';
-
   if (state.filaments.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'meta';
@@ -314,21 +639,27 @@ function renderFilaments() {
     const row = document.createElement('div');
     row.className = 'filament-row';
 
-    const nameInput = document.createElement('input');
-    nameInput.value = filament.name;
+    const manufacturerSelect = document.createElement('select');
+    setSelectOptions(manufacturerSelect, state.filamentManufacturers);
+    manufacturerSelect.value = String(filament.manufacturer_id);
+
+    const typeSelect = document.createElement('select');
+    setSelectOptions(typeSelect, state.filamentTypes);
+    typeSelect.value = String(filament.type_id);
+
+    const colorInput = document.createElement('input');
+    colorInput.type = 'text';
+    colorInput.value = filament.color || '';
 
     const costGroup = document.createElement('div');
     costGroup.className = 'input-addon-group';
-
     const costInput = document.createElement('input');
     costInput.type = 'text';
     costInput.inputMode = 'decimal';
     costInput.value = formatFilamentCostInput(filament.cost_per_kg);
-
     const costAddon = document.createElement('span');
     costAddon.className = 'input-addon';
     costAddon.textContent = 'PLN/kg';
-
     costGroup.appendChild(costInput);
     costGroup.appendChild(costAddon);
 
@@ -336,47 +667,35 @@ function renderFilaments() {
     saveBtn.className = 'btn btn-icon-only';
     saveBtn.type = 'button';
     saveBtn.innerHTML = getIconSvg('save');
-    saveBtn.title = 'Update filament';
-    saveBtn.setAttribute('aria-label', 'Update filament');
     saveBtn.addEventListener('click', async () => {
       const parsedCost = parseLocaleDecimal(costInput.value);
       const result = await fetch(`/api/filaments/${filament.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: nameInput.value,
+          manufacturer_id: Number(manufacturerSelect.value),
+          type_id: Number(typeSelect.value),
+          color: colorInput.value,
           cost_per_kg: parsedCost,
         }),
       });
-      if (!result.ok) {
-        return handleApiError(result);
-      }
+      if (!result.ok) return handleApiError(result);
       await loadState();
       setStatus('Filament updated.', 'ok');
-    });
-
-    costInput.addEventListener('blur', () => {
-      const parsed = parseLocaleDecimal(costInput.value);
-      if (Number.isFinite(parsed)) {
-        costInput.value = formatFilamentCostInput(parsed);
-      }
     });
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn btn-danger btn-icon-only';
     deleteBtn.type = 'button';
     deleteBtn.innerHTML = getIconSvg('trash');
-    deleteBtn.title = 'Delete filament';
-    deleteBtn.setAttribute('aria-label', 'Delete filament');
-    deleteBtn.addEventListener('click', () => {
-      openFilamentDeleteModal(filament.id, filament.name);
-    });
+    deleteBtn.addEventListener('click', () => openFilamentDeleteModal(filament.id, filament.name));
 
-    row.appendChild(nameInput);
+    row.appendChild(manufacturerSelect);
+    row.appendChild(typeSelect);
+    row.appendChild(colorInput);
     row.appendChild(costGroup);
     row.appendChild(saveBtn);
     row.appendChild(deleteBtn);
-
     el.filamentList.appendChild(row);
   });
 }
@@ -386,10 +705,7 @@ function getSavedFilamentSnapshots(calc) {
     return calc.selected_filaments_snapshot;
   }
   if (calc.filament_name_snapshot || calc.filament_cost_per_kg_snapshot !== null) {
-    return [{
-      name: calc.filament_name_snapshot || 'Filament',
-      cost_per_kg: Number(calc.filament_cost_per_kg_snapshot || 0),
-    }];
+    return [{ name: calc.filament_name_snapshot || 'Filament', cost_per_kg: Number(calc.filament_cost_per_kg_snapshot || 0) }];
   }
   return [{ name: 'No filament', cost_per_kg: 0 }];
 }
@@ -408,19 +724,10 @@ function getSavedPriceRange(calc) {
     return total * (1 + margin / 100);
   });
 
-  if (prices.length === 0) {
-    return { min: 0, max: 0 };
-  }
-
-  return {
-    min: Math.min(...prices),
-    max: Math.max(...prices),
-  };
+  return prices.length === 0 ? { min: 0, max: 0 } : { min: Math.min(...prices), max: Math.max(...prices) };
 }
-
 function renderCalculationsList() {
   el.savedList.innerHTML = '';
-
   if (state.calculations.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'meta';
@@ -442,25 +749,19 @@ function renderCalculationsList() {
     meta.className = 'meta';
     const snapshotsCount = getSavedFilamentSnapshots(calc).length;
     const range = getSavedPriceRange(calc);
-
     const prefix = document.createElement('span');
     prefix.className = 'meta-label';
     prefix.textContent = 'Final price: ';
-
     const price = document.createElement('span');
     price.className = 'price-value';
-    if (snapshotsCount > 1 || Math.abs(range.max - range.min) > 0.000001) {
-      price.textContent = `${formatMoney(range.min)} - ${formatMoney(range.max)} PLN`;
-    } else {
-      price.textContent = `${formatMoney(range.min)} PLN`;
-    }
+    price.textContent = snapshotsCount > 1 || Math.abs(range.max - range.min) > 0.000001
+      ? `${formatMoney(range.min)} - ${formatMoney(range.max)} PLN`
+      : `${formatMoney(range.min)} PLN`;
 
     meta.appendChild(prefix);
     meta.appendChild(price);
-
     item.appendChild(name);
     item.appendChild(meta);
-
     item.addEventListener('click', () => {
       state.selectedCalculationId = calc.id;
       loadCalculationToForm(calc);
@@ -473,11 +774,7 @@ function renderCalculationsList() {
 }
 
 function updateCalculationInfo(calc) {
-  if (!calc) {
-    el.calcUpdatedInfo.textContent = '';
-    return;
-  }
-  el.calcUpdatedInfo.textContent = `Updated: ${new Date(calc.updated_at).toLocaleString()}`;
+  el.calcUpdatedInfo.textContent = calc ? `Updated: ${new Date(calc.updated_at).toLocaleString()}` : '';
 }
 
 function loadCalculationToForm(calc) {
@@ -487,6 +784,7 @@ function loadCalculationToForm(calc) {
   setPrintTimeFields(calc.print_time_hours);
   el.filamentUsed.value = calc.filament_used_grams;
   el.marginOverride.value = calc.margin_override_percent ?? '';
+  el.calcPrinter.value = calc.printer_id ? String(calc.printer_id) : '';
 
   const fromArray = Array.isArray(calc.selected_filament_ids) ? calc.selected_filament_ids : [];
   if (fromArray.length > 0) {
@@ -512,6 +810,7 @@ function resetForm() {
   el.printTimeMinutes.value = '';
   el.filamentUsed.value = '';
   el.marginOverride.value = '';
+  el.calcPrinter.value = '';
   state.selectedFilamentIds = [];
   renderFilamentCheckboxes();
   el.deleteCalculationBtn.disabled = true;
@@ -522,9 +821,7 @@ function resetForm() {
 }
 
 function openDeleteModal() {
-  if (!state.selectedCalculationId) {
-    return;
-  }
+  if (!state.selectedCalculationId) return;
   const calc = state.calculations.find((c) => c.id === state.selectedCalculationId);
   const calcName = calc && calc.name ? calc.name : 'this calculation';
   el.deleteModalText.textContent = `Delete ${calcName}? This action cannot be undone.`;
@@ -558,15 +855,13 @@ function closeFilamentDeleteModal() {
 }
 
 function openFilamentInUseModal(filamentName, calculations) {
-  el.filamentInUseText.textContent = `${filamentName} is used by saved calculations and cannot be deleted.`;
+  el.filamentInUseText.textContent = `${filamentName} is used by saved items and cannot be deleted.`;
   el.filamentInUseList.innerHTML = '';
-
   calculations.forEach((calc) => {
     const item = document.createElement('li');
     item.textContent = calc.name || `Untitled (${calc.id})`;
     el.filamentInUseList.appendChild(item);
   });
-
   el.filamentInUseModal.classList.remove('hidden');
   state.ui.filamentInUseModalOpen = true;
 }
@@ -600,7 +895,6 @@ async function confirmFilamentDelete() {
   closeFilamentDeleteModal();
   state.selectedFilamentIds = state.selectedFilamentIds.filter((id) => id !== filamentId);
   await loadState();
-  computePreview();
   setStatus('Filament deleted.', 'ok');
 }
 
@@ -609,16 +903,11 @@ async function confirmDeleteCalculation() {
     closeDeleteModal();
     return;
   }
-
-  const result = await fetch(`/api/calculations/${state.selectedCalculationId}`, {
-    method: 'DELETE',
-  });
-
+  const result = await fetch(`/api/calculations/${state.selectedCalculationId}`, { method: 'DELETE' });
   if (!result.ok) {
     closeDeleteModal();
     return handleApiError(result);
   }
-
   closeDeleteModal();
   await loadState();
   resetForm();
@@ -629,33 +918,34 @@ async function handleApiError(response) {
   let message = 'Request failed.';
   try {
     const body = await response.json();
-    if (body && body.error) {
-      message = body.error;
-    }
+    if (body && body.error) message = body.error;
   } catch (_error) {
-    // ignore parse error
+    // ignore
   }
   setStatus(message, 'error');
 }
 
 async function loadState() {
   const result = await fetch('/api/state');
-  if (!result.ok) {
-    return handleApiError(result);
-  }
+  if (!result.ok) return handleApiError(result);
 
   const data = await result.json();
   state.settings = data.settings;
+  state.printers = Array.isArray(data.printers) ? data.printers : [];
+  state.filamentTypes = Array.isArray(data.filament_types) ? data.filament_types : [];
+  state.filamentManufacturers = Array.isArray(data.filament_manufacturers) ? data.filament_manufacturers : [];
   state.filaments = data.filaments;
   state.calculations = data.calculations;
 
   el.electricityCost.value = state.settings.electricity_cost_per_kwh;
-  el.printerPowerKw.value = state.settings.printer_power_kw;
+  el.printerPowerW.value = formatPowerW(state.settings.printer_power_kw);
   el.defaultMargin.value = state.settings.default_margin_percent;
-  syncMarginOverridePlaceholder();
 
-  state.selectedFilamentIds = state.selectedFilamentIds.filter((id) => state.filaments.some((f) => f.id === id));
-
+  renderPrinterSelect();
+  renderPrinters();
+  renderFilamentReferenceSelects();
+  renderFilamentTypes();
+  renderFilamentManufacturers();
   renderFilamentCheckboxes();
   renderFilaments();
   renderCalculationsList();
@@ -669,9 +959,9 @@ async function loadState() {
     }
   }
 
+  syncMarginOverridePlaceholder();
   computePreview();
 }
-
 el.toggleLeftPanelBtn.addEventListener('click', () => {
   state.ui.leftCollapsed = !state.ui.leftCollapsed;
   syncPanelUI();
@@ -682,9 +972,8 @@ el.toggleRightPanelBtn.addEventListener('click', () => {
   syncPanelUI();
 });
 
-el.filamentDropdownBtn.addEventListener('click', () => {
-  setFilamentDropdownOpen(!state.ui.filamentDropdownOpen);
-});
+el.filamentDropdownBtn.addEventListener('click', () => setFilamentDropdownOpen(!state.ui.filamentDropdownOpen));
+el.calcPrinter.addEventListener('change', computePreview);
 
 el.selectAllFilamentsBtn.addEventListener('click', () => {
   state.selectedFilamentIds = state.filaments.map((f) => f.id);
@@ -704,20 +993,53 @@ el.saveSettingsBtn.addEventListener('click', async () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       electricity_cost_per_kwh: Number(el.electricityCost.value || 0),
-      printer_power_kw: Number(el.printerPowerKw.value || 0),
+      printer_power_kw: Number(el.printerPowerW.value || 0) / 1000,
       default_margin_percent: Number(el.defaultMargin.value || 0),
     }),
   });
-
-  if (!result.ok) {
-    return handleApiError(result);
-  }
-
+  if (!result.ok) return handleApiError(result);
   const data = await result.json();
   state.settings = data.settings;
   syncMarginOverridePlaceholder();
   computePreview();
   setStatus('Settings saved.', 'ok');
+});
+
+el.addPrinterBtn.addEventListener('click', async () => {
+  const result = await fetch('/api/printers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: el.newPrinterName.value, power_w: Number(el.newPrinterPowerW.value || 0) }),
+  });
+  if (!result.ok) return handleApiError(result);
+  el.newPrinterName.value = '';
+  el.newPrinterPowerW.value = '';
+  await loadState();
+  setStatus('Printer added.', 'ok');
+});
+
+el.addFilamentTypeBtn.addEventListener('click', async () => {
+  const result = await fetch('/api/filament-types', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: el.newFilamentTypeName.value }),
+  });
+  if (!result.ok) return handleApiError(result);
+  el.newFilamentTypeName.value = '';
+  await loadState();
+  setStatus('Filament type added.', 'ok');
+});
+
+el.addFilamentManufacturerBtn.addEventListener('click', async () => {
+  const result = await fetch('/api/filament-manufacturers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: el.newFilamentManufacturerName.value }),
+  });
+  if (!result.ok) return handleApiError(result);
+  el.newFilamentManufacturerName.value = '';
+  await loadState();
+  setStatus('Filament manufacturer added.', 'ok');
 });
 
 el.addFilamentBtn.addEventListener('click', async () => {
@@ -726,16 +1048,14 @@ el.addFilamentBtn.addEventListener('click', async () => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      name: el.newFilamentName.value,
+      manufacturer_id: Number(el.newFilamentManufacturer.value),
+      type_id: Number(el.newFilamentType.value),
+      color: el.newFilamentColor.value,
       cost_per_kg: parsedCost,
     }),
   });
-
-  if (!result.ok) {
-    return handleApiError(result);
-  }
-
-  el.newFilamentName.value = '';
+  if (!result.ok) return handleApiError(result);
+  el.newFilamentColor.value = '';
   el.newFilamentCost.value = '';
   await loadState();
   setStatus('Filament added.', 'ok');
@@ -743,9 +1063,7 @@ el.addFilamentBtn.addEventListener('click', async () => {
 
 el.newFilamentCost.addEventListener('blur', () => {
   const parsed = parseLocaleDecimal(el.newFilamentCost.value);
-  if (Number.isFinite(parsed)) {
-    el.newFilamentCost.value = formatFilamentCostInput(parsed);
-  }
+  if (Number.isFinite(parsed)) el.newFilamentCost.value = formatFilamentCostInput(parsed);
 });
 
 el.newCalculationBtn.addEventListener('click', resetForm);
@@ -753,17 +1071,12 @@ el.newCalculationBtn.addEventListener('click', resetForm);
 el.saveCalculationBtn.addEventListener('click', async () => {
   const payload = readCalculationForm();
   const isEdit = Number.isInteger(state.selectedCalculationId) && state.selectedCalculationId > 0;
-
   const result = await fetch(isEdit ? `/api/calculations/${state.selectedCalculationId}` : '/api/calculations', {
     method: isEdit ? 'PUT' : 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-
-  if (!result.ok) {
-    return handleApiError(result);
-  }
-
+  if (!result.ok) return handleApiError(result);
   const data = await result.json();
   state.selectedCalculationId = data.calculation.id;
   await loadState();
@@ -778,44 +1091,25 @@ el.confirmFilamentDeleteBtn.addEventListener('click', confirmFilamentDelete);
 el.closeFilamentInUseBtn.addEventListener('click', closeFilamentInUseModal);
 
 el.deleteModal.addEventListener('click', (event) => {
-  if (event.target === el.deleteModal) {
-    closeDeleteModal();
-  }
+  if (event.target === el.deleteModal) closeDeleteModal();
 });
-
 el.filamentDeleteModal.addEventListener('click', (event) => {
-  if (event.target === el.filamentDeleteModal) {
-    closeFilamentDeleteModal();
-  }
+  if (event.target === el.filamentDeleteModal) closeFilamentDeleteModal();
 });
-
 el.filamentInUseModal.addEventListener('click', (event) => {
-  if (event.target === el.filamentInUseModal) {
-    closeFilamentInUseModal();
-  }
+  if (event.target === el.filamentInUseModal) closeFilamentInUseModal();
 });
 
 document.addEventListener('click', (event) => {
-  if (!el.filamentMultiSelect.contains(event.target)) {
-    setFilamentDropdownOpen(false);
-  }
+  if (!el.filamentMultiSelect.contains(event.target)) setFilamentDropdownOpen(false);
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    if (state.ui.deleteModalOpen) {
-      closeDeleteModal();
-    }
-    if (state.ui.filamentDeleteModalOpen) {
-      closeFilamentDeleteModal();
-    }
-    if (state.ui.filamentInUseModalOpen) {
-      closeFilamentInUseModal();
-    }
-    if (state.ui.filamentDropdownOpen) {
-      setFilamentDropdownOpen(false);
-    }
-  }
+  if (event.key !== 'Escape') return;
+  if (state.ui.deleteModalOpen) closeDeleteModal();
+  if (state.ui.filamentDeleteModalOpen) closeFilamentDeleteModal();
+  if (state.ui.filamentInUseModalOpen) closeFilamentInUseModal();
+  if (state.ui.filamentDropdownOpen) setFilamentDropdownOpen(false);
 });
 
 [el.printTimeHours, el.printTimeMinutes].forEach((node) => {
@@ -834,15 +1128,14 @@ document.addEventListener('keydown', (event) => {
   node.addEventListener('change', computePreview);
 });
 
+setupRightPanelCardFolding();
+loadPanelState();
 syncPanelUI();
 loadState().then(() => {
   resetForm();
 }).catch((error) => {
   setStatus(error.message || 'Failed to load app state.', 'error');
 });
-
-
-
 
 
 

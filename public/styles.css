@@ -9,7 +9,7 @@
   --accent: #2eaadc;
   --danger: #d45f5f;
   --left-width: 300px;
-  --right-width: 480px;
+  --right-width: 720px;
   --collapsed-width: 56px;
 }
 
@@ -181,6 +181,10 @@ h3 {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
+.calc-filaments-field {
+  grid-column: span 2;
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -323,6 +327,23 @@ textarea {
 .multi-select-trigger {
   width: 100%;
   text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #0f151d;
+  color: var(--text);
+  font-weight: 400;
+}
+
+.multi-select-trigger::after {
+  content: "\25BE";
+  color: var(--muted);
+  font-size: 18px;
+  margin-left: 10px;
+  pointer-events: none;
 }
 
 .multi-select-menu {
@@ -372,10 +393,44 @@ textarea {
   gap: 8px;
 }
 
-.filament-row,
+.printer-list {
+  display: grid;
+  gap: 8px;
+}
+
+.simple-crud-list {
+  display: grid;
+  gap: 8px;
+}
+
+.simple-crud-new-row,
+.simple-crud-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+}
+
+.filament-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1.25fr auto auto;
+  gap: 8px;
+}
+
 .filament-new-row {
   display: grid;
-  grid-template-columns: 1.5fr 1fr auto auto;
+  grid-template-columns: 1.2fr 1fr 1fr 1.25fr auto;
+  gap: 8px;
+}
+
+.printer-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr auto auto;
+  gap: 8px;
+}
+
+.printer-new-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr auto;
   gap: 8px;
 }
 
@@ -503,8 +558,13 @@ textarea {
 }
 
 @media (max-width: 920px) {
+  .calc-filaments-field {
+    grid-column: auto;
+  }
   .filament-row,
-  .filament-new-row {
+  .filament-new-row,
+  .printer-row,
+  .printer-new-row {
     grid-template-columns: 1fr;
   }
 }
@@ -548,4 +608,99 @@ textarea {
   line-height: 1.2;
 }
 
+
+
+
+
+
+
+
+.result-item .price-value::after,
+#electricityCostOut::after {
+  content: ' PLN';
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.card-collapsible-content {
+  display: grid;
+  gap: 12px;
+}
+
+.collapsible-card.is-collapsed .card-collapsible-content {
+  display: none;
+}
+
+.card-toggle-btn {
+  width: 30px;
+  min-width: 30px;
+  padding: 4px 0;
+  font-size: 12px;
+  line-height: 1;
+}
+
+
+
+
+
+.right-panel .collapsible-card .section-header {
+  cursor: pointer;
+}
+
+.right-panel .collapsible-card .section-header .btn,
+.right-panel .collapsible-card .section-header input,
+.right-panel .collapsible-card .section-header select,
+.right-panel .collapsible-card .section-header textarea {
+  cursor: default;
+}
+
+
+.form-grid input:not([type='checkbox']),
+.form-grid select,
+.form-grid .multi-select-trigger,
+.form-grid .input-addon {
+  height: 38px;
+}
+
+.form-grid .input-addon {
+  display: inline-flex;
+  align-items: center;
+}
+
+
+#calcPrinter {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23a3b0c2' d='M4.2 6.2a.75.75 0 0 1 1.06 0L8 8.94 10.74 6.2a.75.75 0 1 1 1.06 1.06l-3.27 3.27a.75.75 0 0 1-1.06 0L4.2 7.26a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px 18px;
+}
+
+.app-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-repo-link {
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+}
+
+.footer-repo-link svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.footer-repo-link:hover {
+  color: var(--text);
+}
 

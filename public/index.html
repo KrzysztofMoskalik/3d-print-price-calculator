@@ -51,7 +51,7 @@
                 </div>
               </div>
             </label>
-            <label>
+            <label class="calc-filaments-field">
               Filaments
               <div class="multi-select" id="filamentMultiSelect">
                 <button id="filamentDropdownBtn" class="btn multi-select-trigger" type="button">Choose filaments</button>
@@ -65,9 +65,13 @@
               </div>
             </label>
             <label>
+              Printer
+              <select id="calcPrinter"></select>
+            </label>
+            <label>
               Filament Used
               <div class="input-addon-group">
-                <input id="filamentUsed" type="number" min="0" step="0.1" />
+                <input id="filamentUsed" type="number" min="0" step="0.1" placeholder="0" />
                 <span class="input-addon">g</span>
               </div>
             </label>
@@ -140,10 +144,10 @@
                 </div>
               </label>
               <label>
-                Printer Power Usage
+                Default Printer Power Usage
                 <div class="input-addon-group">
-                  <input id="printerPowerKw" type="number" min="0" step="0.001" />
-                  <span class="input-addon">kW</span>
+                  <input id="printerPowerW" type="number" min="0" step="1" />
+                  <span class="input-addon">W</span>
                 </div>
               </label>
               <label>
@@ -161,10 +165,55 @@
 
           <section class="card">
             <div class="section-header">
+              <h2>Printers</h2>
+            </div>
+            <div class="printer-new-row">
+              <input id="newPrinterName" type="text" placeholder="Printer name" />
+              <div class="input-addon-group">
+                <input id="newPrinterPowerW" type="number" min="0" step="1" placeholder="Power usage" />
+                <span class="input-addon">W</span>
+              </div>
+              <button id="addPrinterBtn" class="btn btn-icon-only" type="button" title="Add printer" aria-label="Add printer">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a.5.5 0 0 1 .5.5V7.5h4a.5.5 0 0 1 0 1h-4v4a.5.5 0 0 1-1 0v-4h-4a.5.5 0 0 1 0-1h4v-4A.5.5 0 0 1 8 3z"/></svg>
+              </button>
+            </div>
+            <div id="printerList" class="printer-list"></div>
+          </section>
+
+          <section class="card">
+            <div class="section-header">
+              <h2>Filament Types</h2>
+            </div>
+            <div class="simple-crud-new-row">
+              <input id="newFilamentTypeName" type="text" placeholder="Type name" />
+              <button id="addFilamentTypeBtn" class="btn btn-icon-only" type="button" title="Add type" aria-label="Add type">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a.5.5 0 0 1 .5.5V7.5h4a.5.5 0 0 1 0 1h-4v4a.5.5 0 0 1-1 0v-4h-4a.5.5 0 0 1 0-1h4v-4A.5.5 0 0 1 8 3z"/></svg>
+              </button>
+            </div>
+            <div id="filamentTypeList" class="simple-crud-list"></div>
+          </section>
+
+          <section class="card">
+            <div class="section-header">
+              <h2>Filament Manufacturers</h2>
+            </div>
+            <div class="simple-crud-new-row">
+              <input id="newFilamentManufacturerName" type="text" placeholder="Manufacturer name" />
+              <button id="addFilamentManufacturerBtn" class="btn btn-icon-only" type="button" title="Add manufacturer" aria-label="Add manufacturer">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a.5.5 0 0 1 .5.5V7.5h4a.5.5 0 0 1 0 1h-4v4a.5.5 0 0 1-1 0v-4h-4a.5.5 0 0 1 0-1h4v-4A.5.5 0 0 1 8 3z"/></svg>
+              </button>
+            </div>
+            <div id="filamentManufacturerList" class="simple-crud-list"></div>
+          </section>
+
+          <section class="card">
+            <div class="section-header">
               <h2>Filaments</h2>
             </div>
             <div class="filament-new-row">
-              <input id="newFilamentName" type="text" placeholder="Filament name" />
+              <select id="newFilamentManufacturer"></select>
+              <select id="newFilamentType"></select>
+              <input id="newFilamentColor" type="text" placeholder="Color" />
               <div class="input-addon-group">
                 <input id="newFilamentCost" type="text" inputmode="decimal" placeholder="0,00" />
                 <span class="input-addon">PLN/kg</span>
@@ -181,6 +230,9 @@
 
     <footer class="app-footer">
       <small>Copyright &copy; 2026 Krzysztof Moskalik</small>
+      <a class="footer-repo-link" href="https://github.com/KrzysztofMoskalik/3d-print-price-calculator" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.56 7.56 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
     </footer>
   </div>
 
@@ -199,7 +251,6 @@
     </div>
   </div>
 
-  
   <div id="filamentDeleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="filamentDeleteModalTitle">
     <div class="modal-card">
       <h3 id="filamentDeleteModalTitle">Delete Filament?</h3>
@@ -221,9 +272,14 @@
       </div>
     </div>
   </div>
+
   <script src="/app.js"></script>
 </body>
 </html>
+
+
+
+
 
 
 
