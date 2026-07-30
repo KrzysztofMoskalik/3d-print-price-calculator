@@ -804,6 +804,23 @@ app.get('/api/state', (_req, res) => {
 
 const backupTables = ['filament_types', 'filament_manufacturers', 'printers', 'filaments', 'calculations'];
 
+function normalizeImportedDateTime(value) {
+  if (value === null || value === undefined || value === '') return value;
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(text)) return text.slice(0, 19);
+  const parsed = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) return value;
+  // MySQL DATETIME does not accept the ISO `T`, timezone, or milliseconds
+  // emitted when a JavaScript Date is serialized in export.json.
+  return parsed.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function importedColumnValue(column, value) {
+  return column === 'created_at' || column === 'updated_at'
+    ? normalizeImportedDateTime(value)
+    : value;
+}
+
 function exportBackupData(user) {
   const data = { version: 1, exported_at: new Date().toISOString(), settings: user ? getUserSettings(user.id) : getSettings() };
   backupTables.forEach((table) => {
@@ -881,12 +898,12 @@ app.post('/api/import-export/import', async (req, res) => {
       importedTables.forEach((table) => {
         (Array.isArray(tables[table]) ? tables[table] : []).forEach((row) => {
           const columns = Object.keys(row);
-          db.prepare(`INSERT INTO ${table} (${columns.map((column) => `\`${column}\``).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`).run(...columns.map((column) => row[column]));
+          db.prepare(`INSERT INTO ${table} (${columns.map((column) => `\`${column}\``).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`).run(...columns.map((column) => importedColumnValue(column, row[column])));
         });
       });
       (Array.isArray(data.gallery) ? data.gallery : []).forEach((image) => {
         const columns = ['id', 'calculation_id', 'user_id', 'stored_name', 'original_name', 'mime_type', 'file_size', 'is_default', 'created_at'];
-        db.prepare(`INSERT INTO gallery_images (${columns.map((column) => `\`${column}\``).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`).run(...columns.map((column) => image[column]));
+        db.prepare(`INSERT INTO gallery_images (${columns.map((column) => `\`${column}\``).join(', ')}) VALUES (${columns.map(() => '?').join(', ')}`).run(...columns.map((column) => importedColumnValue(column, image[column])));
         if (image.archive_path) {
           const archivePath = String(image.archive_path);
           if (!archivePath.startsWith('images/') || archivePath.includes('..')) throw new Error('Invalid gallery image path in export.');
@@ -927,7 +944,7 @@ app.post('/api/import-export/import', async (req, res) => {
       delete row.id;
       const columns = Object.keys(row);
       const placeholders = columns.map(() => '?').join(', ');
-      const result = db.prepare(`INSERT INTO calculations (${columns.map((column) => `\`${column}\``).join(', ')}) VALUES (${placeholders})`).run(...columns.map((column) => row[column]));
+      const result = db.prepare(`INSERT INTO calculations (${columns.map((column) => `\`${column}\``).join(', ')}) VALUES (${placeholders})`).run(...columns.map((column) => importedColumnValue(column, row[column])));
       calculationIdMap.set(Number(source.id), result.lastInsertRowid);
     });
 
@@ -935,7 +952,7 @@ app.post('/api/import-export/import', async (req, res) => {
       const calculationId = calculationIdMap.get(Number(image.calculation_id));
       if (!calculationId) return;
       const columns = ['calculation_id', 'user_id', 'stored_name', 'original_name', 'mime_type', 'file_size', 'is_default', 'created_at'];
-      const values = [calculationId, user.id, image.stored_name, image.original_name, image.mime_type, image.file_size, image.is_default ? 1 : 0, image.created_at];
+      const values = [calculationId, user.id, image.stored_name, image.original_name, image.mime_type, image.file_size, image.is_default ? 1 : 0, normalizeImportedDateTime(image.created_at)];
       db.prepare(`INSERT INTO gallery_images (${columns.map((column) => `\`${column}\``).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`).run(...values);
       if (image.archive_path) {
         const archivePath = String(image.archive_path);
