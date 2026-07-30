@@ -11,7 +11,10 @@ function loadEnvFile() {
   if (!fs.existsSync(envPath)) return;
   fs.readFileSync(envPath, 'utf8').split(/\r?\n/).forEach((line) => {
     const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
-    if (match && process.env[match[1]] === undefined) {
+    // Values injected by Docker/systemd/the shell take precedence over the
+    // local .env file. The file only supplies values that are not already in
+    // the process environment.
+    if (match && !Object.prototype.hasOwnProperty.call(process.env, match[1])) {
       process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
     }
   });
