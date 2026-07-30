@@ -22,6 +22,18 @@ function loadEnvFile() {
 
 loadEnvFile();
 
+// Keep this diagnostic before MySqlCompat is instantiated so deployment logs
+// show the exact connection settings selected by the process. Never print the
+// password itself; presence and length are enough to diagnose env wiring.
+console.log('[startup] Effective MySQL configuration:', {
+  host: process.env.MYSQL_HOST || 'mysql',
+  port: Number(process.env.MYSQL_PORT || 3306),
+  database: process.env.MYSQL_DATABASE || 'calculator',
+  user: process.env.MYSQL_USER || 'calculator',
+  passwordSource: process.env.MYSQL_PASSWORD ? 'environment' : 'application fallback',
+  passwordLength: String(process.env.MYSQL_PASSWORD || 'calculator').length,
+});
+
 const app = express();
 const port = process.env.PORT || 3000;
 const authEnabled = ['1', 'true', 'yes', 'on'].includes(String(process.env.AUTH_ENABLED || 'false').toLowerCase());
