@@ -1,11 +1,10 @@
 ﻿FROM node:20-bookworm-slim AS app-build
 
-WORKDIR /app
-
-# Native module fallback support (better-sqlite3) if prebuilt binaries are unavailable.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 make g++ \
+  && apt-get install -y --no-install-recommends zip unzip \
   && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 
 COPY package*.json ./
 RUN npm install --omit=dev

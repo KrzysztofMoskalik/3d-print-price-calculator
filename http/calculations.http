@@ -1,0 +1,56 @@
+@host = http://localhost:3000
+@token = paste-jwt-access-token-here
+
+### List calculations
+GET {{host}}/api/calculations
+Authorization: Bearer {{token}}
+
+### Get calculation
+GET {{host}}/api/calculations/1
+Authorization: Bearer {{token}}
+
+### Create calculation
+POST {{host}}/api/calculations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Example calculation","print_time_hours":1,"filament_used_grams":10,"print_parts":[]}
+
+### Update calculation
+PUT {{host}}/api/calculations/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Updated calculation","print_time_hours":1,"filament_used_grams":10,"print_parts":[]}
+
+### Delete calculation
+DELETE {{host}}/api/calculations/1
+Authorization: Bearer {{token}}
+
+### List gallery images
+GET {{host}}/api/calculations/1/gallery
+Authorization: Bearer {{token}}
+
+### Upload gallery image
+POST {{host}}/api/calculations/1/gallery
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=gallery
+
+--gallery
+Content-Disposition: form-data; name="image"; filename="example.jpg"
+Content-Type: image/jpeg
+
+< ./example.jpg
+--gallery--
+
+### Set default gallery image
+PUT {{host}}/api/gallery-images/1/default
+Authorization: Bearer {{token}}
+
+### Download gallery image
+GET {{host}}/api/gallery-images/1
+Authorization: Bearer {{token}}
+
+### Delete gallery image
+DELETE {{host}}/api/gallery-images/1
+Authorization: Bearer {{token}}

@@ -1,0 +1,28 @@
+@host = http://localhost:3000
+@token = paste-jwt-access-token-here
+
+### List filaments
+GET {{host}}/api/filaments
+Authorization: Bearer {{token}}
+
+### Get filament
+GET {{host}}/api/filaments/1
+Authorization: Bearer {{token}}
+
+### Create filament
+POST {{host}}/api/filaments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"manufacturer_id":1,"type_id":1,"color":"Black","cost_per_kg":20}
+
+### Update filament
+PUT {{host}}/api/filaments/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"manufacturer_id":1,"type_id":1,"color":"White","cost_per_kg":22}
+
+### Delete filament
+DELETE {{host}}/api/filaments/1
+Authorization: Bearer {{token}}

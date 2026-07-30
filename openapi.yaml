@@ -1,0 +1,446 @@
+openapi: 3.0.3
+info:
+  title: 3D Print Calculator API
+  version: 1.0.0
+  description: REST API for calculations, printers, filaments, settings, and authentication.
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Auth
+  - name: Application
+  - name: Calculations
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { description: Invalid credentials }
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out
+      responses:
+        '200': { description: Session cleared }
+  /api/auth/password:
+    put:
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, format: password }
+                new_password: { type: string, format: password }
+      responses:
+        '200': { description: Password changed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/state:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Get application state
+      responses:
+        '200':
+          description: Current settings and reference data
+          content:
+            application/json:
+              schema: { type: object }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/settings:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Get current settings
+      responses:
+        '200': { description: Current settings }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Update settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                electricity_cost_per_kwh: { type: number, minimum: 0 }
+                printer_power_kw: { type: number, minimum: 0 }
+                default_margin_percent: { type: number, minimum: 0 }
+                rounding_mode: { type: string, enum: [none, tenth, half, integer, five] }
+                currency: { type: string, enum: [PLN, EUR, USD] }
+                default_printer_id: { type: integer, nullable: true }
+      responses:
+        '200': { description: Settings updated }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/import-export/export:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Export application data as a ZIP archive
+      responses:
+        '200': { description: ZIP archive containing export.json and gallery images }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Import/export is disabled }
+  /api/import-export/import:
+    post:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Import application data from a ZIP archive
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archive]
+              properties:
+                archive: { type: string, format: binary }
+      responses:
+        '200': { description: Import completed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Import/export is disabled }
+  /api/calculations:
+    get:
+      tags: [Calculations]
+      security: [{ bearerAuth: [] }]
+      summary: List calculations
+      responses:
+        '200': { description: Calculations }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Calculations]
+      security: [{ bearerAuth: [] }]
+      summary: Create calculation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CalculationRequest' }
+      responses:
+        '201': { description: Calculation created }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/calculations/{id}:
+    get:
+      tags: [Calculations]
+      security: [{ bearerAuth: [] }]
+      summary: Get a calculation
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Calculation }
+        '404': { description: Calculation not found }
+    put:
+      tags: [Calculations]
+      security: [{ bearerAuth: [] }]
+      summary: Update calculation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CalculationRequest' }
+      responses:
+        '200': { description: Calculation updated }
+        '404': { description: Calculation not found }
+    delete:
+      tags: [Calculations]
+      security: [{ bearerAuth: [] }]
+      summary: Delete calculation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Calculation deleted }
+        '404': { description: Calculation not found }
+  /api/auth/send-code:
+    post:
+      tags: [Auth]
+      summary: Send email verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties: { email: { type: string, format: email } }
+      responses:
+        '200': { description: Code sent }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      summary: Get current user
+      responses: { '200': { description: Current user } }
+  /api/auth/config:
+    get:
+      tags: [Auth]
+      summary: Get authentication feature configuration
+      responses: { '200': { description: Authentication configuration } }
+  /api/printers:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: List printers
+      responses: { '200': { description: Printers } }
+    post:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Create printer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, power_w]
+              properties:
+                name: { type: string }
+                power_w: { type: number, minimum: 0 }
+      responses: { '201': { description: Printer created } }
+  /api/printers/{id}:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Get a printer
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Printer }, '404': { description: Printer not found } }
+    put:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Update printer
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Printer updated } }
+    delete:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Delete printer
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Printer deleted } }
+  /api/filament-types:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: List filament types
+      responses: { '200': { description: Filament types } }
+    post:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Create filament type
+      responses: { '201': { description: Type created } }
+  /api/filament-types/{id}:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Get a filament type
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Filament type }, '404': { description: Filament type not found } }
+    put:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Update filament type
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Type updated } }
+    delete:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Delete filament type
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Type deleted } }
+  /api/filament-manufacturers:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: List filament manufacturers
+      responses: { '200': { description: Filament manufacturers } }
+    post:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Create filament manufacturer
+      responses: { '201': { description: Manufacturer created } }
+  /api/filament-manufacturers/{id}:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Get a filament manufacturer
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Filament manufacturer }, '404': { description: Manufacturer not found } }
+    put:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Update filament manufacturer
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Manufacturer updated } }
+    delete:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Delete filament manufacturer
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Manufacturer deleted } }
+  /api/filaments:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: List filaments
+      responses: { '200': { description: Filaments } }
+    post:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Create filament
+      responses: { '201': { description: Filament created } }
+  /api/filaments/{id}:
+    get:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Get a filament
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Filament }, '404': { description: Filament not found } }
+    put:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Update filament
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Filament updated } }
+    delete:
+      tags: [Application]
+      security: [{ bearerAuth: [] }]
+      summary: Delete filament
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Filament deleted } }
+  /api/calculations/{id}/gallery:
+    get:
+      tags: [Gallery]
+      security: [{ bearerAuth: [] }]
+      summary: List calculation gallery images
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Gallery images } }
+    post:
+      tags: [Gallery]
+      security: [{ bearerAuth: [] }]
+      summary: Upload a gallery image
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary }
+      responses: { '201': { description: Image uploaded } }
+  /api/gallery-images/{id}:
+    get:
+      tags: [Gallery]
+      security: [{ bearerAuth: [] }]
+      summary: Download a gallery image
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Image file } }
+    delete:
+      tags: [Gallery]
+      security: [{ bearerAuth: [] }]
+      summary: Delete a gallery image
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Image deleted } }
+  /api/gallery-images/{id}/default:
+    put:
+      tags: [Gallery]
+      security: [{ bearerAuth: [] }]
+      summary: Set a calculation gallery image as default
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Default image updated } }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    RegisterRequest:
+      allOf:
+        - $ref: '#/components/schemas/LoginRequest'
+        - type: object
+          properties:
+            verification_code: { type: string, nullable: true }
+    AuthResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        expires_in: { type: integer, example: 3600 }
+        user:
+          type: object
+          properties:
+            id: { type: integer }
+            email: { type: string, format: email }
+    CalculationRequest:
+      type: object
+      required: [print_time_hours, filament_used_grams]
+      properties:
+        name: { type: string, nullable: true }
+        additional_comments: { type: string, nullable: true }
+        model_url: { type: string, format: uri, nullable: true }
+        commercial_use_allowed: { type: boolean }
+        print_time_hours: { type: number, minimum: 0 }
+        filament_used_grams: { type: number, minimum: 0 }
+        margin_override_percent: { type: number, nullable: true }
+        rounding_override: { type: string, nullable: true }
+        print_parts: { type: array, items: { type: object } }

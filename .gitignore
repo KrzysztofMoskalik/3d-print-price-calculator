@@ -4,3 +4,5 @@ data.db
 *.db-wal
 .git
 .idea
+.env
+uploads/

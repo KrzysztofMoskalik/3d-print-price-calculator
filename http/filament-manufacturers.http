@@ -1,0 +1,28 @@
+@host = http://localhost:3000
+@token = paste-jwt-access-token-here
+
+### List filament manufacturers
+GET {{host}}/api/filament-manufacturers
+Authorization: Bearer {{token}}
+
+### Get filament manufacturer
+GET {{host}}/api/filament-manufacturers/1
+Authorization: Bearer {{token}}
+
+### Create manufacturer
+POST {{host}}/api/filament-manufacturers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Example Manufacturer"}
+
+### Update manufacturer
+PUT {{host}}/api/filament-manufacturers/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Updated Manufacturer"}
+
+### Delete manufacturer
+DELETE {{host}}/api/filament-manufacturers/1
+Authorization: Bearer {{token}}

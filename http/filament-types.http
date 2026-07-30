@@ -1,0 +1,28 @@
+@host = http://localhost:3000
+@token = paste-jwt-access-token-here
+
+### List filament types
+GET {{host}}/api/filament-types
+Authorization: Bearer {{token}}
+
+### Get filament type
+GET {{host}}/api/filament-types/1
+Authorization: Bearer {{token}}
+
+### Create type
+POST {{host}}/api/filament-types
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"PLA"}
+
+### Update type
+PUT {{host}}/api/filament-types/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"PLA+"}
+
+### Delete type
+DELETE {{host}}/api/filament-types/1
+Authorization: Bearer {{token}}

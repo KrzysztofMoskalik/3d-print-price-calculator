@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account - 3D Print Calculator</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="auth-page">
+    <section class="welcome-card auth-page-card">
+      <h1>3D Print Calculator</h1>
+      <p id="authPageIntro">Log in to access your private calculations and settings.</p>
+      <form id="authPageForm" class="auth-form">
+        <label>Email<input id="authPageEmail" type="email" autocomplete="email" required /></label>
+        <label id="verificationCodeLabel" class="verification-field">Verification code
+          <div class="input-addon-group">
+            <input id="authVerificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+            <button id="sendVerificationCode" class="btn" type="button">Send code</button>
+          </div>
+        </label>
+        <label>Password<input id="authPagePassword" type="password" minlength="8" pattern="(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}" title="At least 8 characters, including an uppercase letter, a number, and a special character." required /></label>
+        <small class="password-hint">At least 8 characters, including an uppercase letter, a number, and a special character.</small>
+        <button id="authPageSubmit" class="btn btn-primary" type="submit">Log in</button>
+      </form>
+      <div class="auth-separator"><span>OR</span></div>
+      <div class="auth-socials">
+        <button class="btn" type="button" disabled>Continue with Google</button>
+        <button class="btn" type="button" disabled>Continue with GitHub</button>
+        <button class="btn" type="button" disabled>Continue with Apple</button>
+        <button class="btn" type="button" disabled>Continue with Facebook</button>
+      </div>
+      <div class="auth-separator"><span>OR</span></div>
+      <div class="auth-account-actions">
+        <button id="authPageSwitch" class="btn" type="button">Create an account</button>
+        <button id="authPasswordReset" class="btn" type="button">Restore password</button>
+      </div>
+      <p id="authPageError" class="auth-error"></p>
+    </section>
+  </main>
+  <script src="/auth.js"></script>
+</body>
+</html>

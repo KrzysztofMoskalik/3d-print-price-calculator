@@ -1,0 +1,28 @@
+@host = http://localhost:3000
+@token = paste-jwt-access-token-here
+
+### List printers
+GET {{host}}/api/printers
+Authorization: Bearer {{token}}
+
+### Get printer
+GET {{host}}/api/printers/1
+Authorization: Bearer {{token}}
+
+### Create printer
+POST {{host}}/api/printers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"My Printer","power_w":120}
+
+### Update printer
+PUT {{host}}/api/printers/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Updated Printer","power_w":150}
+
+### Delete printer
+DELETE {{host}}/api/printers/1
+Authorization: Bearer {{token}}

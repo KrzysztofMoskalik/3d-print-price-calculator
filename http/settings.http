@@ -1,0 +1,33 @@
+@host = http://localhost:3000
+@token = paste-jwt-access-token-here
+
+### Application state
+GET {{host}}/api/state
+Authorization: Bearer {{token}}
+
+### Get settings
+GET {{host}}/api/settings
+Authorization: Bearer {{token}}
+
+### Export data
+GET {{host}}/api/import-export/export
+Authorization: Bearer {{token}}
+
+### Import data
+POST {{host}}/api/import-export/import
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=import
+
+--import
+Content-Disposition: form-data; name="archive"; filename="3d-print-calculator-export.zip"
+Content-Type: application/zip
+
+< ./3d-print-calculator-export.zip
+--import--
+
+### Update settings
+PUT {{host}}/api/settings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"currency":"PLN","default_margin_percent":20,"rounding_mode":"none"}
